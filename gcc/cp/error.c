@@ -3475,7 +3475,7 @@ print_instantiation_full_context (diagnostic_context *context)
 
 static void
 print_instantiation_partial_context_line (diagnostic_context *context,
-					  const struct tinst_level *t,
+					  struct tinst_level *t,
 					  location_t loc, bool recursive_p)
 {
   if (loc == UNKNOWN_LOCATION)

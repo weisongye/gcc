@@ -5909,9 +5909,9 @@ struct GTY((chain_next ("%h.next"))) tinst_level {
   /* Return the original node; if it's a split list, make it a
      TREE_LIST first, so that it can be returned as a single tree
      object.  */
-  tree get_node () const {
+  tree get_node () {
     if (!split_list_p ()) return tldcl;
-    else return const_cast <tinst_level *>(this)->to_list ();
+    else return to_list ();
   }
 
   /* Return the original node if it's a DECL or a TREE_LIST, but do
