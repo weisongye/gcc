@@ -5903,6 +5903,9 @@ struct GTY((chain_next ("%h.next"))) tinst_level {
   tree to_list ();
 
  public:
+  /* Release storage for OBJ and node, if it's a TREE_LIST.  */
+  static void free(tinst_level *obj);
+
   /* Return TRUE iff the original node is a list, split or not.  */
   bool list_p () const { return !not_list_p (); }
 
@@ -5916,7 +5919,7 @@ struct GTY((chain_next ("%h.next"))) tinst_level {
 
   /* Return the original node if it's a DECL or a TREE_LIST, but do
      NOT convert a split list to a TREE_LIST: return NULL instead.  */
-  tree get_decl_maybe () const {
+  tree maybe_get_node () const {
     if (!split_list_p ()) return tldcl;
     else return NULL_TREE;
   }

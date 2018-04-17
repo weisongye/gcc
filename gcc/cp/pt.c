@@ -50,7 +50,8 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct GTY ((chain_next ("%h.next"))) pending_template {
+struct GTY ((chain_next ("%h.next"))) pending_template
+{
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -8839,17 +8840,20 @@ public:
    build_tree_list logic in reinit, so this could go out of sync.  */
 template <>
 inline tree &
-freelist<tree_node>::next (tree obj) {
+freelist<tree_node>::next (tree obj)
+{
   return TREE_CHAIN (obj);
 }
 template <>
 inline tree
-freelist<tree_node>::anew () {
+freelist<tree_node>::anew ()
+{
   return build_tree_list (NULL, NULL);
 }
 template <>
 inline void
-freelist<tree_node>::poison (tree obj ATTRIBUTE_UNUSED) {
+freelist<tree_node>::poison (tree obj ATTRIBUTE_UNUSED)
+{
   int size ATTRIBUTE_UNUSED = sizeof (tree_list);
   tree p ATTRIBUTE_UNUSED = obj;
   tree_base *b ATTRIBUTE_UNUSED = &obj->base;
@@ -8878,7 +8882,8 @@ freelist<tree_node>::poison (tree obj ATTRIBUTE_UNUSED) {
 }
 template <>
 inline void
-freelist<tree_node>::reinit (tree obj ATTRIBUTE_UNUSED) {
+freelist<tree_node>::reinit (tree obj ATTRIBUTE_UNUSED)
+{
   tree_base *b ATTRIBUTE_UNUSED = &obj->base;
 
 #ifdef ENABLE_GC_CHECKING
@@ -8902,7 +8907,8 @@ freelist<tree_node>::reinit (tree obj ATTRIBUTE_UNUSED) {
 static GTY((deletable)) tree tree_list_freelist_head;
 /* Return the/an actual TREE_LIST freelist.  */
 static inline freelist<tree_node>
-tree_list_freelist () {
+tree_list_freelist ()
+{
   return tree_list_freelist_head;
 }
 
@@ -8910,7 +8916,8 @@ tree_list_freelist () {
 static GTY((deletable)) tinst_level *tinst_level_freelist_head;
 /* Return the/an actual tinst_level freelist.  */
 static inline freelist<tinst_level>
-tinst_level_freelist () {
+tinst_level_freelist ()
+{
   return tinst_level_freelist_head;
 }
 
@@ -8918,7 +8925,8 @@ tinst_level_freelist () {
 static GTY((deletable)) pending_template *pending_template_freelist_head;
 /* Return the/an actual pending_template freelist.  */
 static inline freelist<pending_template>
-pending_template_freelist () {
+pending_template_freelist ()
+{
   return pending_template_freelist_head;
 }
 
@@ -8939,7 +8947,8 @@ tinst_level::to_list ()
 
 /* Increment OBJ's refcount.  */
 static tinst_level *
-inc_refcount_use (tinst_level *obj) {
+inc_refcount_use (tinst_level *obj)
+{
   if (obj)
     {
       ++obj->refcount;
@@ -8948,18 +8957,26 @@ inc_refcount_use (tinst_level *obj) {
   return obj;
 }
 
+/* Release storage for OBJ and node, if it's a TREE_LIST.  */
+void
+tinst_level::free (tinst_level *obj)
+{
+  if (obj->tree_list_p ())
+    tree_list_freelist ().free (obj->get_node ());
+  tinst_level_freelist ().free (obj);
+}
+
 /* Decrement OBJ's refcount.  If it reaches zero, release OBJ's DECL
    and OBJ, and start over with the tinst_level object that used to be
    referenced by OBJ's NEXT.  */
 static void
-dec_refcount_use (tinst_level *obj) {
+dec_refcount_use (tinst_level *obj)
+{
   while (obj && !--obj->refcount)
     {
       gcc_assert (obj->refcount+1 != 0);
       tinst_level *next = obj->next;
-      if (obj->list_p () && obj->get_decl_maybe ())
-	tree_list_freelist ().free (obj->get_node ());
-      tinst_level_freelist ().free (obj);
+      tinst_level::free (obj);
       obj = next;
     }
 }
@@ -8971,7 +8988,8 @@ dec_refcount_use (tinst_level *obj) {
    overload resolution.  */
 template <typename T>
 static void
-set_refcount_ptr (T *& ptr, T *obj = NULL) {
+set_refcount_ptr (T *& ptr, T *obj = NULL)
+{
   T *save = ptr;
   ptr = inc_refcount_use (obj);
   dec_refcount_use (save);
@@ -8994,7 +9012,7 @@ add_pending_template (tree d)
      Compensate.  */
   gcc_assert (TREE_CODE (d) != TREE_LIST);
   level = !current_tinst_level
-    || current_tinst_level->get_decl_maybe () != d;
+    || current_tinst_level->maybe_get_node () != d;
 
   if (level)
     push_tinst_level (d);
@@ -10077,7 +10095,7 @@ limit_bad_template_recursion (tree decl)
     return false;
 
   for (; lev; lev = lev->next)
-    if (neglectable_inst_p (lev->get_decl_maybe ()))
+    if (neglectable_inst_p (lev->maybe_get_node ()))
       break;
 
   return (lev && errs > lev->errors);
@@ -10197,7 +10215,7 @@ reopen_tinst_level (struct tinst_level *level)
   pop_tinst_level ();
   if (current_tinst_level)
     current_tinst_level->errors = errorcount+sorrycount;
-  return level->get_decl_maybe ();
+  return level->maybe_get_node ();
 }
 
 /* Returns the TINST_LEVEL which gives the original instantiation
@@ -24010,7 +24028,7 @@ instantiate_pending_templates (int retries)
      to avoid infinite loop.  */
   if (pending_templates && retries >= max_tinst_depth)
     {
-      tree decl = pending_templates->tinst->get_decl_maybe ();
+      tree decl = pending_templates->tinst->maybe_get_node ();
 
       fatal_error (input_location,
 		   "template instantiation depth exceeds maximum of %d"
@@ -24351,7 +24369,7 @@ bool
 instantiating_current_function_p (void)
 {
   return (current_instantiation ()
-	  && (current_instantiation ()->get_decl_maybe ()
+	  && (current_instantiation ()->maybe_get_node ()
 	      == current_function_decl));
 }
 
