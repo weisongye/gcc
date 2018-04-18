@@ -6871,7 +6871,10 @@ convert_ptrmem (tree type, tree expr, bool allow_inverse_p,
 			 
 	}
 
-      return build_nop (type, expr);
+      if (c_cast_p)
+	return build_nop (type, expr);
+      else
+	return cp_fold_convert (type, expr);
     }
   else
     return build_ptrmemfunc (TYPE_PTRMEMFUNC_FN_TYPE (type), expr,

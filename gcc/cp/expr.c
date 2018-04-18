@@ -50,11 +50,36 @@ cplus_expand_constant (tree cst)
 	    while (!same_type_p (DECL_CONTEXT (member),
 				 TYPE_PTRMEM_CLASS_TYPE (type)))
 	      {
+		tree t1 = TYPE_MAIN_VARIANT (DECL_CONTEXT (member));
+		tree t2 = TYPE_MAIN_VARIANT (TYPE_PTRMEM_CLASS_TYPE (type));
+
+		if (can_convert (t2, t1, 0))
+		  {
+		    base_kind kind;
+		    tree binfo = lookup_base (t1, t2, ba_unique, &kind, 0);
+		    if (binfo != error_mark_node
+			&& kind != bk_via_virtual)
+		      cst = size_binop (MINUS_EXPR, cst, BINFO_OFFSET (binfo));
+		    break;
+		  }
+
+		if (can_convert (t1, t2, 0))
+		  {
+		    base_kind kind;
+		    tree binfo = lookup_base (t2, t1, ba_unique, &kind, 0);
+		    if (binfo != error_mark_node
+			&& kind != bk_via_virtual)
+		      cst = size_binop (PLUS_EXPR, cst, BINFO_OFFSET (binfo));
+		    break;
+		  }
+
 		/* The MEMBER must have been nestled within an
 		   anonymous aggregate contained in TYPE.  Find the
 		   anonymous aggregate.  */
 		member = lookup_anon_field (TYPE_PTRMEM_CLASS_TYPE (type),
 					    DECL_CONTEXT (member));
+		if (!member)
+		  break;
 		cst = size_binop (PLUS_EXPR, cst, byte_position (member));
 	      }
 	    cst = fold (build_nop (type, cst));
