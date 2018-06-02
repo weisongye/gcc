@@ -580,6 +580,11 @@ namespace __sanitizer {
 # endif
 #elif SANITIZER_MAC
   typedef unsigned __sanitizer_sigset_t;
+#elif SANITIZER_UCLIBC
+  struct __sanitizer_sigset_t {
+    // The size is determined by looking at sizeof of real sigset_t on linux.
+    uptr val[128 / (sizeof(unsigned long) * 8)];
+  };
 #elif SANITIZER_LINUX
   struct __sanitizer_sigset_t {
     // The size is determined by looking at sizeof of real sigset_t on linux.
@@ -661,7 +666,7 @@ namespace __sanitizer {
 #if SANITIZER_LINUX
     void (*sa_restorer)();
 #endif
-#if defined(__mips__) && (SANITIZER_WORDSIZE == 32)
+#if defined(__mips__) && (SANITIZER_WORDSIZE == 32) && !SANITIZER_UCLIBC
     int sa_resv[1];
 #endif
 #if defined(__s390x__)
