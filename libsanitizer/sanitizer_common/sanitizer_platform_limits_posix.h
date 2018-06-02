@@ -67,6 +67,17 @@ namespace __sanitizer {
   const unsigned struct___old_kernel_stat_sz = 0;
   const unsigned struct_kernel_stat_sz = 144;
   const unsigned struct_kernel_stat64_sz = 104;
+#elif defined(__mips__)
+  #if SANITIZER_WORDSIZE == 64
+  const unsigned struct_kernel_stat_sz = 216;
+  #else
+  #ifdef __UCLIBC__
+  const unsigned struct_kernel_stat_sz = 152;
+  #else
+  const unsigned struct_kernel_stat_sz = 144;
+  #endif
+  #endif
+  const unsigned struct_kernel_stat64_sz = 104;
 #elif defined(__sparc__) && defined(__arch64__)
   const unsigned struct___old_kernel_stat_sz = 0;
   const unsigned struct_kernel_stat_sz = 104;
@@ -393,6 +404,11 @@ namespace __sanitizer {
   typedef unsigned long __sanitizer_sigset_t;
 #elif SANITIZER_MAC
   typedef unsigned __sanitizer_sigset_t;
+#elif SANITIZER_UCLIBC
+  struct __sanitizer_sigset_t {
+    // The size is determined by looking at sizeof of real sigset_t on linux.
+    uptr val[128 / (sizeof(unsigned long) * 8)];
+  };
 #elif SANITIZER_LINUX
   struct __sanitizer_sigset_t {
     // The size is determined by looking at sizeof of real sigset_t on linux.

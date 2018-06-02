@@ -48,4 +48,11 @@
 
 #define SANITIZER_POSIX (SANITIZER_LINUX || SANITIZER_MAC)
 
+#include <features.h> //for uclibc
+#if defined(__UCLIBC__)
+# define SANITIZER_UCLIBC  1
+#else
+# define SANITIZER_UCLIBC  0
+#endif
+
 #endif // SANITIZER_PLATFORM_H
