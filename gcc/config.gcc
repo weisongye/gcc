@@ -1504,7 +1504,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 		extra_options="${extra_options} linux-android.opt"
 		# Assume modern glibc if not targeting Android nor uclibc.
 		case ${target} in
-		*-*-*android*|*-*-*uclibc*)
+		*-*-*android*|*-*-*uclibc*|*-*-*musl*)
 		  ;;
 		*)
 		  default_gnu_indirect_function=yes
@@ -1573,7 +1573,7 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 		extra_options="${extra_options} linux-android.opt"
 		# Assume modern glibc if not targeting Android nor uclibc.
 		case ${target} in
-		*-*-*android*|*-*-*uclibc*)
+		*-*-*android*|*-*-*uclibc*|*-*-*musl*)
 		  ;;
 		*)
 		  default_gnu_indirect_function=yes

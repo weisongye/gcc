@@ -53,6 +53,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	builtin_assert ("system=posix");			\
     } while (0)
 
+#ifndef LIBGCC_SPEC
+#define LIBGCC_SPEC "%{static|static-libgcc:-lgcc}%{!static:%{!static-libgcc:-lgcc_s}}"
+#endif
+
 /* Determine which dynamic linker to use depending on whether GLIBC or
    uClibc or Bionic or musl is the default C library and whether
    -muclibc or -mglibc or -mbionic or -mmusl has been passed to change

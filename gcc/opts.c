@@ -1809,6 +1809,17 @@ common_handle_option (struct gcc_options *opts,
 			       opts, opts_set, loc, dc);
       break;
 
+    case OPT_Werror_maybe_reset:
+      {
+        char *ev = getenv ("GCC_NO_WERROR");
+        if ((ev != NULL) && (*ev != '0'))
+          warnings_are_errors = 0;
+      }
+      break;
+
+    case OPT_fhonour_copts:
+      break;
+
     case OPT_Wlarger_than_:
       opts->x_larger_than_size = value;
       opts->x_warn_larger_than = value != -1;

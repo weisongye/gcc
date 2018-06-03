@@ -163,6 +163,11 @@ in older programs.  This warning is on by default.
 Make all warnings into hard errors.  Source code which triggers warnings
 will be rejected.
 
+@item -Werror-maybe-reset
+@opindex Werror-maybe-reset
+Act like @samp{-Wno-error} if the @env{GCC_NO_WERROR} environment
+variable is set to anything other than 0 or empty.
+
 @item -Wsystem-headers
 @opindex Wsystem-headers
 Issue warnings for code in system headers.  These are normally unhelpful
@@ -526,6 +531,12 @@ Search @var{dir} only for header files requested with
 @end ifset
 If @var{dir} begins with @code{=}, then the @code{=} will be replaced
 by the sysroot prefix; see @option{--sysroot} and @option{-isysroot}.
+
+@item -iremap @var{src}:@var{dst}
+@opindex iremap
+Replace the prefix @var{src} in __FILE__ with @var{dst} at expansion time.
+This option can be specified more than once.  Processing stops at the first
+match.
 
 @item -fdirectives-only
 @opindex fdirectives-only
