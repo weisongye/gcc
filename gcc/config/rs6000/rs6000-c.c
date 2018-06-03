@@ -428,6 +428,9 @@ rs6000_cpu_cpp_builtins (cpp_reader *pfile)
     builtin_define ("__FLOAT128__");
   if (TARGET_FLOAT128_HW)
     builtin_define ("__FLOAT128_HARDWARE__");
+#ifdef TARGET_LIBC_PROVIDES_HWCAP_IN_TCB
+  builtin_define ("__BUILTIN_CPU_SUPPORTS__");
+#endif
 
   if (TARGET_EXTRA_BUILTINS && cpp_get_options (pfile)->lang != CLK_ASM)
     {
@@ -4915,6 +4918,15 @@ assignment for unaligned loads and stores");
       stmt = convert (innerptrtype, stmt);
       stmt = build_binary_op (loc, PLUS_EXPR, stmt, arg2, 1);
       stmt = build_indirect_ref (loc, stmt, RO_NULL);
+
+      /* PR83660: We mark this as having side effects so that
+	 downstream in fold_build_cleanup_point_expr () it will get a
+	 CLEANUP_POINT_EXPR.  If it does not we can run into an ICE
+	 later in gimplify_cleanup_point_expr ().  Potentially this
+	 causes missed optimization because the actually is no side
+	 effect.  */
+      if (c_dialect_cxx ())
+	TREE_SIDE_EFFECTS (stmt) = 1;
 
       return stmt;
     }

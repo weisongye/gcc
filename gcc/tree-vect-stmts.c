@@ -2320,7 +2320,7 @@ vectorizable_call (gimple *gs, gimple_stmt_iterator *gsi, gimple **vec_stmt,
       if (cfn != CFN_LAST)
 	fndecl = targetm.vectorize.builtin_vectorized_function
 	  (cfn, vectype_out, vectype_in);
-      else
+      else if (callee)
 	fndecl = targetm.vectorize.builtin_md_vectorized_function
 	  (callee, vectype_out, vectype_in);
     }
@@ -5316,6 +5316,12 @@ vectorizable_store (gimple *stmt, gimple_stmt_iterator *gsi, gimple **vec_stmt,
     }
 
   op = gimple_assign_rhs1 (stmt);
+
+  /* In the case this is a store from a STRING_CST make sure
+     native_encode_expr can handle it.  */
+  if (TREE_CODE (op) == STRING_CST
+      && ! can_native_encode_string_p (op))
+    return false;
 
   if (!vect_is_simple_use (op, vinfo, &def_stmt, &dt, &rhs_vectype))
     {
