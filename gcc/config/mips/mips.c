@@ -19142,6 +19142,9 @@ mips_atomic_assign_expand_fenv (tree *hold, tree *clear, tree *update)
 #define TARGET_USE_BY_PIECES_INFRASTRUCTURE_P \
   mips_use_by_pieces_infrastructure_p
 
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 #include "gt-mips.h"

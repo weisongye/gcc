@@ -105,6 +105,9 @@ static size_t include_cursor;
 /* Whether any standard preincluded header has been preincluded.  */
 static bool done_preinclude;
 
+/* Check if a port honours COPTS.  */
+static int honour_copts = 0;
+
 static void handle_OPT_d (const char *);
 static void set_std_cxx98 (int);
 static void set_std_cxx11 (int);
@@ -384,6 +387,9 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       cpp_opts->warn_endif_labels = value;
       break;
 
+    case OPT_Werror_maybe_reset:
+      break;
+
     case OPT_Winvalid_pch:
       cpp_opts->warn_invalid_pch = value;
       break;
@@ -490,6 +496,12 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_fhosted:
       flag_hosted = value;
       flag_no_builtin = !value;
+      break;
+
+    case OPT_fhonour_copts:
+      if (c_language == clk_c) {
+        honour_copts++;
+      }
       break;
 
     case OPT_fconstant_string_class_:
@@ -1047,6 +1059,47 @@ c_common_init (void)
       preprocess_file (parse_in);
       return false;
     }
+
+  if (c_language == clk_c) {
+    char *ev = getenv ("GCC_HONOUR_COPTS");
+    int evv;
+    if (ev == NULL)
+      evv = -1;
+    else if ((*ev == '0') || (*ev == '\0'))
+      evv = 0;
+    else if (*ev == '1')
+      evv = 1;
+    else if (*ev == '2')
+      evv = 2;
+    else if (*ev == 's')
+      evv = -1;
+    else {
+      warning (0, "unknown GCC_HONOUR_COPTS value, assuming 1");
+      evv = 1; /* maybe depend this on something like MIRBSD_NATIVE?  */
+    }
+    if (evv == 1) {
+      if (honour_copts == 0) {
+        error ("someone does not honour COPTS at all in lenient mode");
+        return false;
+      } else if (honour_copts != 1) {
+        warning (0, "someone does not honour COPTS correctly, passed %d times",
+         honour_copts);
+      }
+    } else if (evv == 2) {
+      if (honour_copts == 0) {
+        error ("someone does not honour COPTS at all in strict mode");
+        return false;
+      } else if (honour_copts != 1) {
+        error ("someone does not honour COPTS correctly, passed %d times",
+         honour_copts);
+        return false;
+      }
+    } else if (evv == 0) {
+      if (honour_copts != 1)
+        inform (0, "someone does not honour COPTS correctly, passed %d times",
+         honour_copts);
+    }
+  }
 
   return true;
 }

@@ -8105,7 +8105,10 @@ getenv_spec_function (int argc, const char **argv)
 
   value = getenv (argv[0]);
   if (!value)
-    fatal_error ("environment variable %qs not defined", argv[0]);
+    {
+      warning (0, "environment variable %qs not defined", argv[0]);
+      value = "";
+    }
 
   /* We have to escape every character of the environment variable so
      they are not interpreted as active spec characters.  A

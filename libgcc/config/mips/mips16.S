@@ -35,6 +35,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    values using the soft-float calling convention, but do the actual
    operation using the hard floating point instructions.  */
 
+/* An executable stack is *not* required for these functions.  */
+	.section .note.GNU-stack,"",%progbits
+	.previous
+
 #if defined _MIPS_SIM && (_MIPS_SIM == _ABIO32 || _MIPS_SIM == _ABIO64)
 
 /* This file contains 32-bit assembly code.  */

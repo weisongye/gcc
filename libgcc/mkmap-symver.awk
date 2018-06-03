@@ -132,5 +132,5 @@ function output(lib) {
   else if (inherit[lib])
     printf("} %s;\n", inherit[lib]);
   else
-    printf ("\n  local:\n\t*;\n};\n");
+    printf ("\n\t*;\n};\n");
 }

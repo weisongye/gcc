@@ -549,6 +549,10 @@ Werror=
 Common Joined
 Treat specified warning as error
 
+Werror-maybe-reset
+Common
+If environment variable GCC_NO_WERROR is set, act as -Wno-error
+
 Wextra
 Common Var(extra_warnings) Warning
 Print extra (possibly unwanted) warnings
@@ -1287,6 +1291,9 @@ fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
 Enable guessing of branch probabilities
 
+fhonour-copts
+Common RejectNegative
+
 ; Nonzero means ignore `#ident' directives.  0 means handle them.
 ; Generate position-independent code for executables if possible
 ; On SVR4 targets, it also controls whether or not to emit a
@@ -1658,6 +1665,10 @@ Generate position-independent code if possible (small mode)
 fpie
 Common Report Var(flag_pie,1) Negative(fPIC)
 Generate position-independent code for executables if possible (small mode)
+
+fplt
+Common Report Var(flag_plt) Init(1)
+Use PLT for PIC calls (-fno-plt: load the address from GOT at call site)
 
 fplugin=
 Common Joined RejectNegative Var(common_deferred_options) Defer

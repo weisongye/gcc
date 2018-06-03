@@ -243,7 +243,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wconversion -Wcoverage-mismatch -Wdate-time -Wdelete-incomplete -Wno-cpp  @gol
 -Wno-deprecated -Wno-deprecated-declarations -Wdisabled-optimization  @gol
 -Wno-div-by-zero -Wdouble-promotion -Wempty-body  -Wenum-compare @gol
--Wno-endif-labels -Werror  -Werror=* @gol
+-Wno-endif-labels -Werror  -Werror=* -Werror-maybe-reset @gol
 -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
 -Wformat-security  -Wformat-y2k @gol
@@ -5043,6 +5043,22 @@ This option is only supported for C and Objective-C@.  It is implied by
 @option{-Wall} and by @option{-Wpedantic}, which can be disabled with
 @option{-Wno-pointer-sign}.
 
+ at item -Werror-maybe-reset
+ at opindex Werror-maybe-reset
+Act like @samp{-Wno-error} if the @env{GCC_NO_WERROR} environment
+variable is set to anything other than 0 or empty.
+
+ at item -fhonour-copts
+ at opindex fhonour-copts
+If @env{GCC_HONOUR_COPTS} is set to 1, abort if this option is not
+given at least once, and warn if it is given more than once.
+If @env{GCC_HONOUR_COPTS} is set to 2, abort if this option is not
+given exactly once.
+If @env{GCC_HONOUR_COPTS} is set to 0 or unset, warn if this option
+is not given exactly once.
+The warning is quelled if @env{GCC_HONOUR_COPTS} is set to @samp{s}.
+This flag and environment variable only affect the C language.
+
 @item -Wstack-protector
 @opindex Wstack-protector
 @opindex Wno-stack-protector
@@ -7196,7 +7212,7 @@ so, the first branch is redirected to either the destination of the
 second branch or a point immediately following it, depending on whether
 the condition is known to be true or false.
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Enabled at levels @option{-O3}.
 
 @item -fsplit-wide-types
 @opindex fsplit-wide-types

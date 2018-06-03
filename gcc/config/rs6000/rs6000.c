@@ -21022,7 +21022,7 @@ rs6000_savres_strategy (rs6000_stack_t *info,
   /* Define cutoff for using out-of-line functions to save registers.  */
   if (DEFAULT_ABI == ABI_V4 || TARGET_ELF)
     {
-      if (!optimize_size)
+      if (1)
 	{
 	  strategy |= SAVE_INLINE_FPRS | REST_INLINE_FPRS;
 	  strategy |= SAVE_INLINE_GPRS | REST_INLINE_GPRS;

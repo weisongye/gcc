@@ -163,6 +163,11 @@ in older programs.  This warning is on by default.
 Make all warnings into hard errors.  Source code which triggers warnings
 will be rejected.
 
+ at item -Werror-maybe-reset
+ at opindex Werror-maybe-reset
+Act like @samp{-Wno-error} if the @env{GCC_NO_WERROR} environment
+variable is set to anything other than 0 or empty.
+
 @item -Wsystem-headers
 @opindex Wsystem-headers
 Issue warnings for code in system headers.  These are normally unhelpful
