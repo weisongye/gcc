@@ -31,11 +31,13 @@
 
 namespace __sanitizer {
 
+static char *DemangleAlloc(const char *name, bool always_alloc);
+
 #if SANITIZER_LIBBACKTRACE
 
 namespace {
 
-#if SANITIZER_CP_DEMANGLE
+# if SANITIZER_CP_DEMANGLE
 struct CplusV3DemangleData {
   char *buf;
   uptr size, allocated;
@@ -62,13 +64,13 @@ static void CplusV3DemangleCallback(const char *s, size_t l, void *vdata) {
 }
 }  // extern "C"
 
-char *CplusV3Demangle(const char *name, bool always_alloc) {
+char *CplusV3Demangle(const char *name) {
   CplusV3DemangleData data;
   data.buf = 0;
   data.size = 0;
   data.allocated = 0;
   if (cplus_demangle_v3_callback(name, DMGL_PARAMS | DMGL_ANSI,
-				 CplusV3DemangleCallback, &data)) {
+                                 CplusV3DemangleCallback, &data)) {
     if (data.size + 64 > data.allocated)
       return data.buf;
     char *buf = internal_strdup(data.buf);
@@ -77,56 +79,54 @@ char *CplusV3Demangle(const char *name, bool always_alloc) {
   }
   if (data.buf)
     InternalFree(data.buf);
-  if (always_alloc)
-    return internal_strdup(name);
   return 0;
 }
-#else
-const char *CplusV3Demangle(const char *name, bool always_alloc) {
-  if (always_alloc)
-    return internal_strdup(name);
-  return 0;
-}
-#endif
+# endif  // SANITIZER_CP_DEMANGLE
 
-struct SymbolizeCodeData {
-  AddressInfo *frames;
-  uptr n_frames;
-  uptr max_frames;
-  const char *module_name;
-  uptr module_offset;
+struct SymbolizeCodeCallbackArg {
+  SymbolizedStack *first;
+  SymbolizedStack *last;
+  uptr frames_symbolized;
+
+  AddressInfo *get_new_frame(uintptr_t addr) {
+    CHECK(last);
+    if (frames_symbolized > 0) {
+      SymbolizedStack *cur = SymbolizedStack::New(addr);
+      AddressInfo *info = &cur->info;
+      info->FillModuleInfo(first->info.module, first->info.module_offset,
+                           first->info.module_arch);
+      last->next = cur;
+      last = cur;
+    }
+    CHECK_EQ(addr, first->info.address);
+    CHECK_EQ(addr, last->info.address);
+    return &last->info;
+  }
 };
 
 extern "C" {
 static int SymbolizeCodePCInfoCallback(void *vdata, uintptr_t addr,
                                        const char *filename, int lineno,
                                        const char *function) {
-  SymbolizeCodeData *cdata = (SymbolizeCodeData *)vdata;
+  SymbolizeCodeCallbackArg *cdata = (SymbolizeCodeCallbackArg *)vdata;
   if (function) {
-    AddressInfo *info = &cdata->frames[cdata->n_frames++];
-    info->Clear();
-    info->FillAddressAndModuleInfo(addr, cdata->module_name,
-                                   cdata->module_offset);
-    info->function = CplusV3Demangle(function, true);
+    AddressInfo *info = cdata->get_new_frame(addr);
+    info->function = DemangleAlloc(function, /*always_alloc*/ true);
     if (filename)
       info->file = internal_strdup(filename);
     info->line = lineno;
-    if (cdata->n_frames == cdata->max_frames)
-      return 1;
+    cdata->frames_symbolized++;
   }
   return 0;
 }
 
 static void SymbolizeCodeCallback(void *vdata, uintptr_t addr,
                                   const char *symname, uintptr_t, uintptr_t) {
-  SymbolizeCodeData *cdata = (SymbolizeCodeData *)vdata;
+  SymbolizeCodeCallbackArg *cdata = (SymbolizeCodeCallbackArg *)vdata;
   if (symname) {
-    AddressInfo *info = &cdata->frames[0];
-    info->Clear();
-    info->FillAddressAndModuleInfo(addr, cdata->module_name,
-                                   cdata->module_offset);
-    info->function = CplusV3Demangle(symname, true);
-    cdata->n_frames = 1;
+    AddressInfo *info = cdata->get_new_frame(addr);
+    info->function = DemangleAlloc(symname, /*always_alloc*/ true);
+    cdata->frames_symbolized++;
   }
 }
 
@@ -134,7 +134,7 @@ static void SymbolizeDataCallback(void *vdata, uintptr_t, const char *symname,
                                   uintptr_t symval, uintptr_t symsize) {
   DataInfo *info = (DataInfo *)vdata;
   if (symname && symval) {
-    info->name = CplusV3Demangle(symname, true);
+    info->name = DemangleAlloc(symname, /*always_alloc*/ true);
     info->start = symval;
     info->size = symsize;
   }
@@ -154,40 +154,24 @@ LibbacktraceSymbolizer *LibbacktraceSymbolizer::get(LowLevelAllocator *alloc) {
   return new(*alloc) LibbacktraceSymbolizer(state);
 }
 
-uptr LibbacktraceSymbolizer::SymbolizeCode(uptr addr, AddressInfo *frames,
-                                           uptr max_frames,
-                                           const char *module_name,
-                                           uptr module_offset) {
-  SymbolizeCodeData data;
-  data.frames = frames;
-  data.n_frames = 0;
-  data.max_frames = max_frames;
-  data.module_name = module_name;
-  data.module_offset = module_offset;
+bool LibbacktraceSymbolizer::SymbolizePC(uptr addr, SymbolizedStack *stack) {
+  SymbolizeCodeCallbackArg data;
+  data.first = stack;
+  data.last = stack;
+  data.frames_symbolized = 0;
   backtrace_pcinfo((backtrace_state *)state_, addr, SymbolizeCodePCInfoCallback,
                    ErrorCallback, &data);
-  if (data.n_frames)
-    return data.n_frames;
+  if (data.frames_symbolized > 0)
+    return true;
   backtrace_syminfo((backtrace_state *)state_, addr, SymbolizeCodeCallback,
                     ErrorCallback, &data);
-  return data.n_frames;
+  return (data.frames_symbolized > 0);
 }
 
-bool LibbacktraceSymbolizer::SymbolizeData(DataInfo *info) {
-  backtrace_syminfo((backtrace_state *)state_, info->address,
-                    SymbolizeDataCallback, ErrorCallback, info);
+bool LibbacktraceSymbolizer::SymbolizeData(uptr addr, DataInfo *info) {
+  backtrace_syminfo((backtrace_state *)state_, addr, SymbolizeDataCallback,
+                    ErrorCallback, info);
   return true;
-}
-
-const char *LibbacktraceSymbolizer::Demangle(const char *name) {
-#if SANITIZER_CP_DEMANGLE
-  const char *demangled = CplusV3Demangle(name, false);
-  if (demangled)
-    return demangled;
-  return name;
-#else
-  return 0;
-#endif
 }
 
 #else  // SANITIZER_LIBBACKTRACE
@@ -196,22 +180,29 @@ LibbacktraceSymbolizer *LibbacktraceSymbolizer::get(LowLevelAllocator *alloc) {
   return 0;
 }
 
-uptr LibbacktraceSymbolizer::SymbolizeCode(uptr addr, AddressInfo *frames,
-                                           uptr max_frames,
-                                           const char *module_name,
-                                           uptr module_offset) {
+bool LibbacktraceSymbolizer::SymbolizePC(uptr addr, SymbolizedStack *stack) {
   (void)state_;
-  return 0;
-}
-
-bool LibbacktraceSymbolizer::SymbolizeData(DataInfo *info) {
   return false;
 }
 
-const char *LibbacktraceSymbolizer::Demangle(const char *name) {
-  return 0;
+bool LibbacktraceSymbolizer::SymbolizeData(uptr addr, DataInfo *info) {
+  return false;
 }
 
 #endif  // SANITIZER_LIBBACKTRACE
+
+static char *DemangleAlloc(const char *name, bool always_alloc) {
+#if SANITIZER_LIBBACKTRACE && SANITIZER_CP_DEMANGLE
+  if (char *demangled = CplusV3Demangle(name))
+    return demangled;
+#endif
+  if (always_alloc)
+    return internal_strdup(name);
+  return 0;
+}
+
+const char *LibbacktraceSymbolizer::Demangle(const char *name) {
+  return DemangleAlloc(name, /*always_alloc*/ false);
+}
 
 }  // namespace __sanitizer

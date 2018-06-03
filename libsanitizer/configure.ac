@@ -96,7 +96,17 @@ AM_CONDITIONAL(LSAN_SUPPORTED, [test "x$LSAN_SUPPORTED" = "xyes"])
 AC_CHECK_FUNCS(clock_getres clock_gettime clock_settime)
 
 # Common libraries that we need to link against for all sanitizer libs.
-link_sanitizer_common='-lpthread -ldl -lm'
+link_sanitizer_common='-lpthread -lm'
+
+# At least for glibc, shm_open is in librt.  But don't pull that
+# in if it still doesn't give us the function we want.  This
+# test is copied from libgomp.
+AC_CHECK_LIB(rt, shm_open,
+  [link_sanitizer_common="-lrt $link_sanitizer_common"])
+
+# Do a configure time check for -ldl
+AC_CHECK_LIB(dl, dlsym,
+  [link_sanitizer_common="-ldl $link_sanitizer_common"])
 
 # Set up the set of additional libraries that we need to link against for libasan.
 link_libasan=$link_sanitizer_common
@@ -114,16 +124,15 @@ AC_SUBST(link_libubsan)
 link_liblsan=$link_sanitizer_common
 AC_SUBST(link_liblsan)
 
+
 # At least for glibc, clock_gettime is in librt.  But don't pull that
 # in if it still doesn't give us the function we want.  This
 # test is copied from libgomp.
-if test $ac_cv_func_clock_gettime = no; then
-  AC_CHECK_LIB(rt, clock_gettime,
-    [link_libasan="-lrt $link_libasan"
+AC_CHECK_LIB(rt, clock_gettime,
+  [link_libasan="-lrt $link_libasan"
 link_libtsan="-lrt $link_libtsan"
 # Other sanitizers do not override clock_* API
 ])
-fi
 
 case "$host" in
   *-*-darwin*) MAC_INTERPOSE=true ; enable_static=no ;;
@@ -312,6 +321,24 @@ if test "$have_getexecname" = "yes"; then
   AC_DEFINE(HAVE_GETEXECNAME, 1, [Define if getexecname is available.])
 fi
 
+# Check for rpc/xdr.h
+AC_CHECK_HEADERS(rpc/xdr.h)
+if test x"$ac_cv_header_rpc_xdr_h" = xyes; then
+  rpc_defs="$rpc_defs -DHAVE_RPC_XDR_H=1"
+else
+  rpc_defs="$rpc_defs -DHAVE_RPC_XDR_H=0"
+fi
+
+# Check for tirpc/rpc/xdr.h
+AC_CHECK_HEADERS(tirpc/rpc/xdr.h)
+if test x"$ac_cv_header_tirpc_rpc_xdr_h" = xyes; then
+  rpc_defs="$rpc_defs -DHAVE_TIRPC_RPC_XDR_H=1"
+else
+  rpc_defs="$rpc_defs -DHAVE_TIRPC_RPC_XDR_H=0"
+fi
+
+AC_SUBST([RPC_DEFS], [$rpc_defs])
+
 AM_CONDITIONAL(LIBBACKTRACE_SUPPORTED,
 	       [test "x${BACKTRACE_SUPPORTED}x${BACKTRACE_USES_MALLOC}" = "x1x0"])
 
@@ -346,5 +373,20 @@ _EOF
     AS_UNSET([ml_norecursion])
 ])
 fi
+
+AC_SUBST([TSAN_TARGET_DEPENDENT_OBJECTS])
+AC_SUBST([SANITIZER_COMMON_TARGET_DEPENDENT_OBJECTS])
+
+# Determine what GCC version number to use in filesystem paths.
+GCC_BASE_VER
+
+# Add CET specific flags if Intel CET is enabled.
+GCC_CET_FLAGS(CET_FLAGS)
+EXTRA_CFLAGS="$EXTRA_CFLAGS $CET_FLAGS"
+EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS $CET_FLAGS"
+EXTRA_ASFLAGS=$CET_FLAGS
+AC_SUBST(EXTRA_ASFLAGS)
+AC_SUBST(EXTRA_CFLAGS)
+AC_SUBST(EXTRA_CXXFLAGS)
 
 AC_OUTPUT

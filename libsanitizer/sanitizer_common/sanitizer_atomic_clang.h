@@ -13,7 +13,25 @@
 #ifndef SANITIZER_ATOMIC_CLANG_H
 #define SANITIZER_ATOMIC_CLANG_H
 
+#if defined(__i386__) || defined(__x86_64__)
+# include "sanitizer_atomic_clang_x86.h"
+#else
+# include "sanitizer_atomic_clang_other.h"
+#endif
+
 namespace __sanitizer {
+
+// We would like to just use compiler builtin atomic operations
+// for loads and stores, but they are mostly broken in clang:
+// - they lead to vastly inefficient code generation
+// (http://llvm.org/bugs/show_bug.cgi?id=17281)
+// - 64-bit atomic operations are not implemented on x86_32
+// (http://llvm.org/bugs/show_bug.cgi?id=15034)
+// - they are not implemented on ARM
+// error: undefined reference to '__atomic_load_4'
+
+// See http://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html
+// for mappings of the memory model to different processors.
 
 INLINE void atomic_signal_fence(memory_order) {
   __asm__ __volatile__("" ::: "memory");
@@ -21,59 +39,6 @@ INLINE void atomic_signal_fence(memory_order) {
 
 INLINE void atomic_thread_fence(memory_order) {
   __sync_synchronize();
-}
-
-INLINE void proc_yield(int cnt) {
-  __asm__ __volatile__("" ::: "memory");
-#if defined(__i386__) || defined(__x86_64__)
-  for (int i = 0; i < cnt; i++)
-    __asm__ __volatile__("pause");
-#endif
-  __asm__ __volatile__("" ::: "memory");
-}
-
-template<typename T>
-INLINE typename T::Type atomic_load(
-    const volatile T *a, memory_order mo) {
-  DCHECK(mo & (memory_order_relaxed | memory_order_consume
-      | memory_order_acquire | memory_order_seq_cst));
-  DCHECK(!((uptr)a % sizeof(*a)));
-  typename T::Type v;
-  // FIXME:
-  // 64-bit atomic operations are not atomic on 32-bit platforms.
-  // The implementation lacks necessary memory fences on ARM/PPC.
-  // We would like to use compiler builtin atomic operations,
-  // but they are mostly broken:
-  // - they lead to vastly inefficient code generation
-  // (http://llvm.org/bugs/show_bug.cgi?id=17281)
-  // - 64-bit atomic operations are not implemented on x86_32
-  // (http://llvm.org/bugs/show_bug.cgi?id=15034)
-  // - they are not implemented on ARM
-  // error: undefined reference to '__atomic_load_4'
-  if (mo == memory_order_relaxed) {
-    v = a->val_dont_use;
-  } else {
-    atomic_signal_fence(memory_order_seq_cst);
-    v = a->val_dont_use;
-    atomic_signal_fence(memory_order_seq_cst);
-  }
-  return v;
-}
-
-template<typename T>
-INLINE void atomic_store(volatile T *a, typename T::Type v, memory_order mo) {
-  DCHECK(mo & (memory_order_relaxed | memory_order_release
-      | memory_order_seq_cst));
-  DCHECK(!((uptr)a % sizeof(*a)));
-  if (mo == memory_order_relaxed) {
-    a->val_dont_use = v;
-  } else {
-    atomic_signal_fence(memory_order_seq_cst);
-    a->val_dont_use = v;
-    atomic_signal_fence(memory_order_seq_cst);
-  }
-  if (mo == memory_order_seq_cst)
-    atomic_thread_fence(memory_order_seq_cst);
 }
 
 template<typename T>
@@ -104,16 +69,25 @@ INLINE typename T::Type atomic_exchange(volatile T *a,
   return v;
 }
 
-template<typename T>
-INLINE bool atomic_compare_exchange_strong(volatile T *a,
-                                           typename T::Type *cmp,
+template <typename T>
+INLINE bool atomic_compare_exchange_strong(volatile T *a, typename T::Type *cmp,
                                            typename T::Type xchg,
                                            memory_order mo) {
   typedef typename T::Type Type;
   Type cmpv = *cmp;
-  Type prev = __sync_val_compare_and_swap(&a->val_dont_use, cmpv, xchg);
-  if (prev == cmpv)
-    return true;
+  Type prev;
+#if defined(_MIPS_SIM) && _MIPS_SIM == _ABIO32
+  if (sizeof(*a) == 8) {
+    Type volatile *val_ptr = const_cast<Type volatile *>(&a->val_dont_use);
+    prev = __mips_sync_val_compare_and_swap<u64>(
+        reinterpret_cast<u64 volatile *>(val_ptr), (u64)cmpv, (u64)xchg);
+  } else {
+    prev = __sync_val_compare_and_swap(&a->val_dont_use, cmpv, xchg);
+  }
+#else
+  prev = __sync_val_compare_and_swap(&a->val_dont_use, cmpv, xchg);
+#endif
+  if (prev == cmpv) return true;
   *cmp = prev;
   return false;
 }

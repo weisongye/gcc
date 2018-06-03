@@ -19,25 +19,16 @@
 
 namespace __tsan {
 
-ScopedInRtl::ScopedInRtl() {
-}
-
-ScopedInRtl::~ScopedInRtl() {
-}
-
-uptr GetShadowMemoryConsumption() {
-  return 0;
-}
-
 void FlushShadowMemory() {
 }
 
-const char *InitializePlatform() {
-  return GetEnv(kTsanOptionsEnv);
+void WriteMemoryProfile(char *buf, uptr buf_size, uptr nthread, uptr nlive) {
 }
 
-void FinalizePlatform() {
-  fflush(0);
+void InitializePlatformEarly() {
+}
+
+void InitializePlatform() {
 }
 
 }  // namespace __tsan

@@ -36,13 +36,14 @@ class ThreadContextBase {
 
   const u32 tid;  // Thread ID. Main thread should have tid = 0.
   u64 unique_id;  // Unique thread ID.
-  uptr os_id;     // PID (used for reporting).
+  u32 reuse_count;  // Number of times this tid was reused.
+  tid_t os_id;     // PID (used for reporting).
   uptr user_id;   // Some opaque user thread id (e.g. pthread_t).
   char name[64];  // As annotated by user.
 
   ThreadStatus status;
   bool detached;
-  int reuse_count;
+  bool workerthread;
 
   u32 parent_tid;
   ThreadContextBase *next;  // For storing thread contexts in a list.
@@ -52,7 +53,7 @@ class ThreadContextBase {
   void SetDead();
   void SetJoined(void *arg);
   void SetFinished();
-  void SetStarted(uptr _os_id, void *arg);
+  void SetStarted(tid_t _os_id, bool _workerthread, void *arg);
   void SetCreated(uptr _user_id, u64 _unique_id, bool _detached,
                   u32 _parent_tid, void *arg);
   void Reset();
@@ -66,6 +67,7 @@ class ThreadContextBase {
   virtual void OnStarted(void *arg) {}
   virtual void OnCreated(void *arg) {}
   virtual void OnReset() {}
+  virtual void OnDetached(void *arg) {}
 };
 
 typedef ThreadContextBase* (*ThreadContextFactory)(u32 tid);
@@ -75,8 +77,9 @@ class ThreadRegistry {
   static const u32 kUnknownTid;
 
   ThreadRegistry(ThreadContextFactory factory, u32 max_threads,
-                 u32 thread_quarantine_size);
-  void GetNumberOfThreads(uptr *total = 0, uptr *running = 0, uptr *alive = 0);
+                 u32 thread_quarantine_size, u32 max_reuse = 0);
+  void GetNumberOfThreads(uptr *total = nullptr, uptr *running = nullptr,
+                          uptr *alive = nullptr);
   uptr GetMaxAliveThreads();
 
   void Lock() { mtx_.Lock(); }
@@ -104,19 +107,20 @@ class ThreadRegistry {
   // is found.
   ThreadContextBase *FindThreadContextLocked(FindThreadCallback cb,
                                              void *arg);
-  ThreadContextBase *FindThreadContextByOsIDLocked(uptr os_id);
+  ThreadContextBase *FindThreadContextByOsIDLocked(tid_t os_id);
 
   void SetThreadName(u32 tid, const char *name);
   void SetThreadNameByUserId(uptr user_id, const char *name);
-  void DetachThread(u32 tid);
+  void DetachThread(u32 tid, void *arg);
   void JoinThread(u32 tid, void *arg);
   void FinishThread(u32 tid);
-  void StartThread(u32 tid, uptr os_id, void *arg);
+  void StartThread(u32 tid, tid_t os_id, bool workerthread, void *arg);
 
  private:
   const ThreadContextFactory context_factory_;
   const u32 max_threads_;
   const u32 thread_quarantine_size_;
+  const u32 max_reuse_;
 
   BlockingMutex mtx_;
 
@@ -138,6 +142,6 @@ class ThreadRegistry {
 
 typedef GenericScopedLock<ThreadRegistry> ThreadRegistryLock;
 
-}  // namespace __sanitizer
+} // namespace __sanitizer
 
-#endif  // SANITIZER_THREAD_REGISTRY_H
+#endif // SANITIZER_THREAD_REGISTRY_H

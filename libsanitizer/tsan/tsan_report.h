@@ -11,6 +11,7 @@
 #ifndef TSAN_REPORT_H
 #define TSAN_REPORT_H
 
+#include "sanitizer_common/sanitizer_symbolizer.h"
 #include "tsan_defs.h"
 #include "tsan_vector.h"
 
@@ -20,21 +21,27 @@ enum ReportType {
   ReportTypeRace,
   ReportTypeVptrRace,
   ReportTypeUseAfterFree,
+  ReportTypeVptrUseAfterFree,
+  ReportTypeExternalRace,
   ReportTypeThreadLeak,
   ReportTypeMutexDestroyLocked,
+  ReportTypeMutexDoubleLock,
+  ReportTypeMutexInvalidAccess,
+  ReportTypeMutexBadUnlock,
+  ReportTypeMutexBadReadLock,
+  ReportTypeMutexBadReadUnlock,
   ReportTypeSignalUnsafe,
-  ReportTypeErrnoInSignal
+  ReportTypeErrnoInSignal,
+  ReportTypeDeadlock
 };
 
 struct ReportStack {
-  ReportStack *next;
-  char *module;
-  uptr offset;
-  uptr pc;
-  char *func;
-  char *file;
-  int line;
-  int col;
+  SymbolizedStack *frames;
+  bool suppressable;
+  static ReportStack *New();
+
+ private:
+  ReportStack();
 };
 
 struct ReportMopMutex {
@@ -48,6 +55,7 @@ struct ReportMop {
   int size;
   bool write;
   bool atomic;
+  uptr external_tag;
   Vector<ReportMopMutex> mset;
   ReportStack *stack;
 
@@ -64,29 +72,33 @@ enum ReportLocationType {
 
 struct ReportLocation {
   ReportLocationType type;
-  uptr addr;
-  uptr size;
-  char *module;
-  uptr offset;
+  DataInfo global;
+  uptr heap_chunk_start;
+  uptr heap_chunk_size;
+  uptr external_tag;
   int tid;
   int fd;
-  char *name;
-  char *file;
-  int line;
+  bool suppressable;
   ReportStack *stack;
+
+  static ReportLocation *New(ReportLocationType type);
+ private:
+  explicit ReportLocation(ReportLocationType type);
 };
 
 struct ReportThread {
   int id;
-  uptr pid;
+  tid_t os_id;
   bool running;
+  bool workerthread;
   char *name;
-  int parent_tid;
+  u32 parent_tid;
   ReportStack *stack;
 };
 
 struct ReportMutex {
   u64 id;
+  uptr addr;
   bool destroyed;
   ReportStack *stack;
 };
@@ -94,11 +106,13 @@ struct ReportMutex {
 class ReportDesc {
  public:
   ReportType typ;
+  uptr tag;
   Vector<ReportStack*> stacks;
   Vector<ReportMop*> mops;
   Vector<ReportLocation*> locs;
   Vector<ReportMutex*> mutexes;
   Vector<ReportThread*> threads;
+  Vector<int> unique_tids;
   ReportStack *sleep;
   int count;
 

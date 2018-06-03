@@ -22,13 +22,31 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  // Arguments for __sanitizer_sandbox_on_notify() below.
+  typedef struct {
+    // Enable sandbox support in sanitizer coverage.
+    int coverage_sandboxed;
+    // File descriptor to write coverage data to. If -1 is passed, a file will
+    // be pre-opened by __sanitizer_sandobx_on_notify(). This field has no
+    // effect if coverage_sandboxed == 0.
+    intptr_t coverage_fd;
+    // If non-zero, split the coverage data into well-formed blocks. This is
+    // useful when coverage_fd is a socket descriptor. Each block will contain
+    // a header, allowing data from multiple processes to be sent over the same
+    // socket.
+    unsigned int coverage_max_block_size;
+  } __sanitizer_sandbox_arguments;
+
   // Tell the tools to write their reports to "path.<pid>" instead of stderr.
   void __sanitizer_set_report_path(const char *path);
+  // Tell the tools to write their reports to the provided file descriptor
+  // (casted to void *).
+  void __sanitizer_set_report_fd(void *fd);
 
   // Notify the tools that the sandbox is going to be turned on. The reserved
   // parameter will be used in the future to hold a structure with functions
   // that the tools may call to bypass the sandbox.
-  void __sanitizer_sandbox_on_notify(void *reserved);
+  void __sanitizer_sandbox_on_notify(__sanitizer_sandbox_arguments *args);
 
   // This function is called by the tool when it has just finished reporting
   // an error. 'error_summary' is a one-line string that summarizes
@@ -45,16 +63,13 @@ extern "C" {
   void __sanitizer_unaligned_store32(void *p, uint32_t x);
   void __sanitizer_unaligned_store64(void *p, uint64_t x);
 
-  // Record and dump coverage info.
-  void __sanitizer_cov_dump();
-
   // Annotate the current state of a contiguous container, such as
   // std::vector, std::string or similar.
   // A contiguous container is a container that keeps all of its elements
   // in a contiguous region of memory. The container owns the region of memory
   // [beg, end); the memory [beg, mid) is used to store the current elements
   // and the memory [mid, end) is reserved for future elements;
-  // end <= mid <= end. For example, in "std::vector<> v"
+  // beg <= mid <= end. For example, in "std::vector<> v"
   //   beg = &v[0];
   //   end = beg + v.capacity() * sizeof(v[0]);
   //   mid = beg + v.size()     * sizeof(v[0]);
@@ -82,9 +97,97 @@ extern "C" {
                                                  const void *end,
                                                  const void *old_mid,
                                                  const void *new_mid);
+  // Returns true if the contiguous container [beg, end) is properly poisoned
+  // (e.g. with __sanitizer_annotate_contiguous_container), i.e. if
+  //  - [beg, mid) is addressable,
+  //  - [mid, end) is unaddressable.
+  // Full verification requires O(end-beg) time; this function tries to avoid
+  // such complexity by touching only parts of the container around beg/mid/end.
+  int __sanitizer_verify_contiguous_container(const void *beg, const void *mid,
+                                              const void *end);
+
+  // Similar to __sanitizer_verify_contiguous_container but returns the address
+  // of the first improperly poisoned byte otherwise. Returns null if the area
+  // is poisoned properly.
+  const void *__sanitizer_contiguous_container_find_bad_address(
+      const void *beg, const void *mid, const void *end);
 
   // Print the stack trace leading to this call. Useful for debugging user code.
   void __sanitizer_print_stack_trace();
+
+  // Symbolizes the supplied 'pc' using the format string 'fmt'.
+  // Outputs at most 'out_buf_size' bytes into 'out_buf'.
+  // The format syntax is described in
+  // lib/sanitizer_common/sanitizer_stacktrace_printer.h.
+  void __sanitizer_symbolize_pc(void *pc, const char *fmt, char *out_buf,
+                                size_t out_buf_size);
+  // Same as __sanitizer_symbolize_pc, but for data section (i.e. globals).
+  void __sanitizer_symbolize_global(void *data_ptr, const char *fmt,
+                                    char *out_buf, size_t out_buf_size);
+
+  // Sets the callback to be called right before death on error.
+  // Passing 0 will unset the callback.
+  void __sanitizer_set_death_callback(void (*callback)(void));
+
+  // Interceptor hooks.
+  // Whenever a libc function interceptor is called it checks if the
+  // corresponding weak hook is defined, and it so -- calls it.
+  // The primary use case is data-flow-guided fuzzing, where the fuzzer needs
+  // to know what is being passed to libc functions, e.g. memcmp.
+  // FIXME: implement more hooks.
+  void __sanitizer_weak_hook_memcmp(void *called_pc, const void *s1,
+                                    const void *s2, size_t n, int result);
+  void __sanitizer_weak_hook_strncmp(void *called_pc, const char *s1,
+                                    const char *s2, size_t n, int result);
+  void __sanitizer_weak_hook_strncasecmp(void *called_pc, const char *s1,
+                                         const char *s2, size_t n, int result);
+  void __sanitizer_weak_hook_strcmp(void *called_pc, const char *s1,
+                                    const char *s2, int result);
+  void __sanitizer_weak_hook_strcasecmp(void *called_pc, const char *s1,
+                                        const char *s2, int result);
+  void __sanitizer_weak_hook_strstr(void *called_pc, const char *s1,
+                                    const char *s2, char *result);
+  void __sanitizer_weak_hook_strcasestr(void *called_pc, const char *s1,
+                                        const char *s2, char *result);
+  void __sanitizer_weak_hook_memmem(void *called_pc,
+                                    const void *s1, size_t len1,
+                                    const void *s2, size_t len2, void *result);
+
+  // Prints stack traces for all live heap allocations ordered by total
+  // allocation size until `top_percent` of total live heap is shown.
+  // `top_percent` should be between 1 and 100.
+  // At most `max_number_of_contexts` contexts (stack traces) is printed.
+  // Experimental feature currently available only with asan on Linux/x86_64.
+  void __sanitizer_print_memory_profile(size_t top_percent,
+                                        size_t max_number_of_contexts);
+
+  // Fiber annotation interface.
+  // Before switching to a different stack, one must call
+  // __sanitizer_start_switch_fiber with a pointer to the bottom of the
+  // destination stack and its size. When code starts running on the new stack,
+  // it must call __sanitizer_finish_switch_fiber to finalize the switch.
+  // The start_switch function takes a void** to store the current fake stack if
+  // there is one (it is needed when detect_stack_use_after_return is enabled).
+  // When restoring a stack, this pointer must be given to the finish_switch
+  // function. In most cases, this void* can be stored on the stack just before
+  // switching.  When leaving a fiber definitely, null must be passed as first
+  // argument to the start_switch function so that the fake stack is destroyed.
+  // If you do not want support for stack use-after-return detection, you can
+  // always pass null to these two functions.
+  // Note that the fake stack mechanism is disabled during fiber switch, so if a
+  // signal callback runs during the switch, it will not benefit from the stack
+  // use-after-return detection.
+  void __sanitizer_start_switch_fiber(void **fake_stack_save,
+                                      const void *bottom, size_t size);
+  void __sanitizer_finish_switch_fiber(void *fake_stack_save,
+                                       const void **bottom_old,
+                                       size_t *size_old);
+
+  // Get full module name and calculate pc offset within it.
+  // Returns 1 if pc belongs to some module, 0 if module was not found.
+  int __sanitizer_get_module_and_offset_for_pc(void *pc, char *module_path,
+                                               size_t module_path_len,
+                                               void **pc_offset);
 
 #ifdef __cplusplus
 }  // extern "C"
