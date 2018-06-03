@@ -17928,7 +17928,7 @@ mips_option_override (void)
     flag_pcc_struct_return = 0;
 
   /* Decide which rtx_costs structure to use.  */
-  if (optimize_size)
+  if (0 && optimize_size)
     mips_cost = &mips_rtx_cost_optimize_size;
   else
     mips_cost = &mips_rtx_cost_data[mips_tune];
@@ -20227,6 +20227,9 @@ mips_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 
 #undef TARGET_HARD_REGNO_SCRATCH_OK
 #define TARGET_HARD_REGNO_SCRATCH_OK mips_hard_regno_scratch_ok
+
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

@@ -438,6 +438,10 @@ Wfloat-conversion
 C ObjC C++ ObjC++ Var(warn_float_conversion) Warning LangEnabledBy(C ObjC C++ ObjC++,Wconversion)
 Warn for implicit type conversions that cause loss of floating point precision.
 
+Werror-maybe-reset
+C ObjC C++ ObjC++
+; Documented in common.opt
+
 Wfloat-equal
 C ObjC C++ ObjC++ Var(warn_float_equal) Warning
 Warn if testing floating point numbers for equality.
@@ -1252,6 +1256,9 @@ C++ ObjC++ Optimization Alias(fexceptions) Warn({-fhandle-exceptions has been re
 fhonor-std
 C++ ObjC++ Ignore Warn(switch %qs is no longer supported)
 
+fhonour-copts
+C ObjC C++ ObjC++ RejectNegative
+
 fhosted
 C ObjC
 Assume normal C execution environment.
@@ -1624,6 +1631,10 @@ C ObjC C++ ObjC++ Joined Separate MissingArgError(missing path after %qs)
 iquote
 C ObjC C++ ObjC++ Joined Separate MissingArgError(missing path after %qs)
 -iquote <dir>	Add <dir> to the end of the quote include path.
+
+iremap
+C ObjC C++ ObjC++ Joined Separate
+-iremap <src:dst>  Convert <src> to <dst> if it occurs as prefix in __FILE__.
 
 iwithprefix
 C ObjC C++ ObjC++ Joined Separate

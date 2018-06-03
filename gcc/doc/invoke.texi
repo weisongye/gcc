@@ -263,7 +263,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wno-discarded-qualifiers -Wno-discarded-array-qualifiers @gol
 -Wno-div-by-zero -Wdouble-promotion -Wduplicated-cond @gol
 -Wempty-body  -Wenum-compare -Wno-endif-labels @gol
--Werror  -Werror=* -Wfatal-errors -Wfloat-equal  -Wformat  -Wformat=2 @gol
+-Werror  -Werror=* -Werror-maybe-reset -Wfatal-errors -Wfloat-equal  -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
 -Wformat-security  -Wformat-signedness  -Wformat-y2k -Wframe-address @gol
 -Wframe-larger-than=@var{len} -Wno-free-nonheap-object -Wjump-misses-init @gol
@@ -476,8 +476,8 @@ Objective-C and Objective-C++ Dialects}.
 @item Directory Options
 @xref{Directory Options,,Options for Directory Search}.
 @gccoptlist{-B@var{prefix} -I@var{dir} -iplugindir=@var{dir} @gol
--iquote@var{dir} -L@var{dir} -no-canonical-prefixes -I- @gol
---sysroot=@var{dir} --no-sysroot-suffix}
+-iquote@var{dir} -iremap@var{src}:@var{dst} -L@var{dir} -no-canonical-prefixes @gol
+-I- --sysroot=@var{dir} --no-sysroot-suffix}
 
 @item Code Generation Options
 @xref{Code Gen Options,,Options for Code Generation Conventions}.
@@ -5737,6 +5737,22 @@ This option is only supported for C and Objective-C@.  It is implied by
 @option{-Wall} and by @option{-Wpedantic}, which can be disabled with
 @option{-Wno-pointer-sign}.
 
+@item -Werror-maybe-reset
+@opindex Werror-maybe-reset
+Act like @samp{-Wno-error} if the @env{GCC_NO_WERROR} environment
+variable is set to anything other than 0 or empty.
+
+@item -fhonour-copts
+@opindex fhonour-copts
+If @env{GCC_HONOUR_COPTS} is set to 1, abort if this option is not
+given at least once, and warn if it is given more than once.
+If @env{GCC_HONOUR_COPTS} is set to 2, abort if this option is not
+given exactly once.
+If @env{GCC_HONOUR_COPTS} is set to 0 or unset, warn if this option
+is not given exactly once.
+The warning is quelled if @env{GCC_HONOUR_COPTS} is set to @samp{s}.
+This flag and environment variable only affect the C language.
+
 @item -Wstack-protector
 @opindex Wstack-protector
 @opindex Wno-stack-protector
@@ -6605,7 +6621,7 @@ so, the first branch is redirected to either the destination of the
 second branch or a point immediately following it, depending on whether
 the condition is known to be true or false.
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Enabled at levels @option{-O3}.
 
 @item -fsplit-wide-types
 @opindex fsplit-wide-types
@@ -10844,6 +10860,12 @@ Add the directory @var{dir} to the head of the list of directories to
 be searched for header files only for the case of @code{#include
 "@var{file}"}; they are not searched for @code{#include <@var{file}>},
 otherwise just like @option{-I}.
+
+@item -iremap @var{src}:@var{dst}
+@opindex iremap
+Replace the prefix @var{src} in __FILE__ with @var{dst} at expansion time.
+This option can be specified more than once.  Processing stops at the first
+match.
 
 @item -L@var{dir}
 @opindex L
