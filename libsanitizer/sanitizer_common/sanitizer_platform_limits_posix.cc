@@ -48,7 +48,9 @@
 #include <utime.h>
 #include <sys/mount.h>
 #include <sys/ptrace.h>
+#if !SANITIZER_UCLIBC //for redefine
 #include <sys/sysinfo.h>
+#endif
 #include <sys/vt.h>
 #include <linux/cdrom.h>
 #include <linux/fd.h>
@@ -64,7 +66,9 @@
 
 #if !SANITIZER_ANDROID
 #include <sys/ucontext.h>
+#if !SANITIZER_UCLIBC
 #include <wordexp.h>
+#endif
 #endif
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID
@@ -73,7 +77,9 @@
 #include <net/if_ppp.h>
 #include <netax25/ax25.h>
 #include <netipx/ipx.h>
+#if !SANITIZER_UCLIBC
 #include <netrom/netrom.h>
+#endif
 #include <scsi/scsi.h>
 #include <sys/mtio.h>
 #include <sys/kd.h>
@@ -81,7 +87,9 @@
 #include <sys/statvfs.h>
 #include <sys/timex.h>
 #include <sys/user.h>
+#if !SANITIZER_UCLIBC
 #include <sys/ustat.h>
+#endif
 #include <linux/cyclades.h>
 #include <linux/if_eql.h>
 #include <linux/if_plip.h>
@@ -207,7 +215,9 @@ namespace __sanitizer {
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID
   int glob_nomatch = GLOB_NOMATCH;
+#if !SANITIZER_UCLIBC
   int glob_altdirfunc = GLOB_ALTDIRFUNC;
+#endif
 #endif
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID && \
@@ -309,7 +319,9 @@ namespace __sanitizer {
   unsigned struct_kbkeycode_sz = sizeof(struct kbkeycode);
   unsigned struct_kbsentry_sz = sizeof(struct kbsentry);
   unsigned struct_mtconfiginfo_sz = sizeof(struct mtconfiginfo);
+#if !SANITIZER_UCLIBC
   unsigned struct_nr_parms_struct_sz = sizeof(struct nr_parms_struct);
+#endif
   unsigned struct_ppp_stats_sz = sizeof(struct ppp_stats);
   unsigned struct_scc_modem_sz = sizeof(struct scc_modem);
   unsigned struct_scc_stat_sz = sizeof(struct scc_stat);
@@ -672,7 +684,11 @@ namespace __sanitizer {
   unsigned IOCTL_EQL_SETSLAVECFG = EQL_SETSLAVECFG;
 #if EV_VERSION > (0x010000)
   unsigned IOCTL_EVIOCGKEYCODE_V2 = EVIOCGKEYCODE_V2;
+#if !SANITIZER_UCLIBC
   unsigned IOCTL_EVIOCGPROP = EVIOCGPROP(0);
+#else
+  unsigned IOCTL_EVIOCGPROP = IOCTL_NOT_PRESENT;
+#endif
   unsigned IOCTL_EVIOCSKEYCODE_V2 = EVIOCSKEYCODE_V2;
 #else
   unsigned IOCTL_EVIOCGKEYCODE_V2 = IOCTL_NOT_PRESENT;
@@ -748,10 +764,12 @@ namespace __sanitizer {
   unsigned IOCTL_SIOCAX25SETPARMS = SIOCAX25SETPARMS;
   unsigned IOCTL_SIOCDEVPLIP = SIOCDEVPLIP;
   unsigned IOCTL_SIOCIPXCFGDATA = SIOCIPXCFGDATA;
+#if !SANITIZER_UCLIBC
   unsigned IOCTL_SIOCNRDECOBS = SIOCNRDECOBS;
   unsigned IOCTL_SIOCNRGETPARMS = SIOCNRGETPARMS;
   unsigned IOCTL_SIOCNRRTCTL = SIOCNRRTCTL;
   unsigned IOCTL_SIOCNRSETPARMS = SIOCNRSETPARMS;
+#endif
   unsigned IOCTL_SNDCTL_DSP_GETISPACE = SNDCTL_DSP_GETISPACE;
   unsigned IOCTL_SNDCTL_DSP_GETOSPACE = SNDCTL_DSP_GETOSPACE;
   unsigned IOCTL_TIOCGSERIAL = TIOCGSERIAL;
@@ -785,7 +803,7 @@ CHECK_SIZE_AND_OFFSET(dl_phdr_info, dlpi_phnum);
 COMPILER_CHECK(IOC_SIZE(0x12345678) == _IOC_SIZE(0x12345678));
 #endif
 
-#if SANITIZER_LINUX && !SANITIZER_ANDROID
+#if SANITIZER_LINUX && !SANITIZER_ANDROID && !SANITIZER_UCLIBC
 CHECK_TYPE_SIZE(glob_t);
 CHECK_SIZE_AND_OFFSET(glob_t, gl_pathc);
 CHECK_SIZE_AND_OFFSET(glob_t, gl_pathv);
@@ -889,7 +907,7 @@ CHECK_TYPE_SIZE(__kernel_loff_t);
 CHECK_TYPE_SIZE(__kernel_fd_set);
 #endif
 
-#if !SANITIZER_ANDROID
+#if !SANITIZER_ANDROID && !SANITIZER_UCLIBC
 CHECK_TYPE_SIZE(wordexp_t);
 CHECK_SIZE_AND_OFFSET(wordexp_t, we_wordc);
 CHECK_SIZE_AND_OFFSET(wordexp_t, we_wordv);
