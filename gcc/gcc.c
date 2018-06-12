@@ -868,7 +868,9 @@ proper position among the other output files.  */
 #endif
 
 #ifndef LINK_SSP_SPEC
-#ifdef TARGET_LIBC_PROVIDES_SSP
+#if DEFAULT_LIBC == LIBC_MUSL
+#define LINK_SSP_SPEC "-lssp_nonshared"
+#elif defined(TARGET_LIBC_PROVIDES_SSP)
 #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
 		       "|fstack-protector-strong|fstack-protector-explicit:}"
 #else
@@ -9346,8 +9348,10 @@ getenv_spec_function (int argc, const char **argv)
     value = varname;
 
   if (!value)
-    fatal_error (input_location,
-		 "environment variable %qs not defined", varname);
+    {
+      warning (input_location, "environment variable %qs not defined", varname);
+      value = "";
+    }
 
   /* We have to escape every character of the environment variable so
      they are not interpreted as active spec characters.  A

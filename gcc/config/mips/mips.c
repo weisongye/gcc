@@ -3102,6 +3102,12 @@ mips_emit_call_insn (rtx pattern, rtx orig_addr, rtx addr, bool lazy_p)
       emit_insn (gen_update_got_version ());
     }
 
+  if (TARGET_MIPS16 && TARGET_USE_GOT)
+    {
+      clobber_reg (&CALL_INSN_FUNCTION_USAGE (insn), MIPS16_PIC_TEMP);
+      clobber_reg (&CALL_INSN_FUNCTION_USAGE (insn), MIPS_PROLOGUE_TEMP (word_mode));
+    }
+
   if (TARGET_MIPS16
       && TARGET_EXPLICIT_RELOCS
       && TARGET_CALL_CLOBBERED_GP)
@@ -19828,7 +19834,7 @@ mips_option_override (void)
     flag_pcc_struct_return = 0;
 
   /* Decide which rtx_costs structure to use.  */
-  if (optimize_size)
+  if (0 && optimize_size)
     mips_cost = &mips_rtx_cost_optimize_size;
   else
     mips_cost = &mips_rtx_cost_data[mips_tune];
@@ -22634,6 +22640,9 @@ mips_starting_frame_offset (void)
 
 #undef TARGET_STARTING_FRAME_OFFSET
 #define TARGET_STARTING_FRAME_OFFSET mips_starting_frame_offset
+
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

@@ -88,10 +88,15 @@
 #define MUSL_DYNAMIC_LINKER \
   "/lib/ld-musl-arm" MUSL_DYNAMIC_LINKER_E "%{mfloat-abi=hard:hf}.so.1"
 
+/* For armv4 we pass --fix-v4bx to linker to support EABI */
+#undef TARGET_FIX_V4BX_SPEC
+#define TARGET_FIX_V4BX_SPEC " %{mcpu=arm8|mcpu=arm810|mcpu=strongarm*"\
+  "|march=armv4|mcpu=fa526|mcpu=fa626:--fix-v4bx}"
+
 /* At this point, bpabi.h will have clobbered LINK_SPEC.  We want to
    use the GNU/Linux version, not the generic BPABI version.  */
 #undef  LINK_SPEC
-#define LINK_SPEC EABI_LINK_SPEC					\
+#define LINK_SPEC EABI_LINK_SPEC TARGET_FIX_V4BX_SPEC			\
   LINUX_OR_ANDROID_LD (LINUX_TARGET_LINK_SPEC,				\
 		       LINUX_TARGET_LINK_SPEC " " ANDROID_LINK_SPEC)
 
@@ -120,10 +125,6 @@
 #define ENDFILE_SPEC \
   "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} "	\
   LINUX_OR_ANDROID_LD (GNU_USER_TARGET_ENDFILE_SPEC, ANDROID_ENDFILE_SPEC)
-
-/* Use the default LIBGCC_SPEC, not the version in linux-elf.h, as we
-   do not use -lfloat.  */
-#undef LIBGCC_SPEC
 
 /* Clear the instruction cache from `beg' to `end'.  This is
    implemented in lib1funcs.S, so ensure an error if this definition
