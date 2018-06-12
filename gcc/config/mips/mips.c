@@ -22638,6 +22638,9 @@ mips_starting_frame_offset (void)
 #undef TARGET_STARTING_FRAME_OFFSET
 #define TARGET_STARTING_FRAME_OFFSET mips_starting_frame_offset
 
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 #include "gt-mips.h"

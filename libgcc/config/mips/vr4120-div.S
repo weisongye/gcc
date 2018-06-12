@@ -26,6 +26,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    -mfix-vr4120.  div and ddiv do not give the correct result when one
    of the operands is negative.  */
 
+/* An executable stack is *not* required for these functions.  */
+	.section .note.GNU-stack,"",%progbits
+	.previous
+
 	.set	nomips16
 
 #define DIV								\
