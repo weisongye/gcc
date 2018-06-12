@@ -861,7 +861,9 @@ proper position among the other output files.  */
 #endif
 
 #ifndef LINK_SSP_SPEC
-#ifdef TARGET_LIBC_PROVIDES_SSP
+#if DEFAULT_LIBC == LIBC_MUSL
+#define LINK_SSP_SPEC "-lssp_nonshared"
+#elif defined(TARGET_LIBC_PROVIDES_SSP)
 #define LINK_SSP_SPEC "%{fstack-protector|fstack-protector-all" \
 		       "|fstack-protector-strong|fstack-protector-explicit:}"
 #else
