@@ -22567,6 +22567,9 @@ mips_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 #undef TARGET_CUSTOM_FUNCTION_DESCRIPTORS
 #define TARGET_CUSTOM_FUNCTION_DESCRIPTORS 2
 
+#undef TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 #include "gt-mips.h"
