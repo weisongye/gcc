@@ -3102,6 +3102,12 @@ mips_emit_call_insn (rtx pattern, rtx orig_addr, rtx addr, bool lazy_p)
       emit_insn (gen_update_got_version ());
     }
 
+  if (TARGET_MIPS16 && TARGET_USE_GOT)
+    {
+      clobber_reg (&CALL_INSN_FUNCTION_USAGE (insn), MIPS16_PIC_TEMP);
+      clobber_reg (&CALL_INSN_FUNCTION_USAGE (insn), MIPS_PROLOGUE_TEMP (word_mode));
+    }
+
   if (TARGET_MIPS16
       && TARGET_EXPLICIT_RELOCS
       && TARGET_CALL_CLOBBERED_GP)
