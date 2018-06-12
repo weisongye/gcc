@@ -588,6 +588,10 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       add_path (xstrdup (arg), SYSTEM, 0, true);
       break;
 
+    case OPT_iremap:
+      add_cpp_remap_path (arg);
+      break;
+
     case OPT_iwithprefix:
       add_prefixed_path (arg, SYSTEM);
       break;

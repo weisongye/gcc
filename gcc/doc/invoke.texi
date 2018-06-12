@@ -11865,6 +11865,12 @@ by @option{-fplugin=@var{name}} instead of
 @option{-fplugin=@var{path}/@var{name}.so}.  This option is not meant
 to be used by the user, but only passed by the driver.
 
+@item -iremap @var{src}:@var{dst}
+@opindex iremap
+Replace the prefix @var{src} in __FILE__ with @var{dst} at expansion time.
+This option can be specified more than once.  Processing stops at the first
+match.
+
 @item -L@var{dir}
 @opindex L
 Add directory @var{dir} to the list of directories to be searched
