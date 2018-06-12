@@ -26,6 +26,7 @@ PWD_COMMAND = $${PWDCMD-pwd}
 STAMP = echo timestamp >
 
 libgodir = ../$(target_noncanonical)/libgo
+libgccdir = ../$(target_noncanonical)/libgcc
 LIBGODEP = $(libgodir)/libgo.la
 
 if NATIVE
@@ -38,7 +39,8 @@ endif
 GOCFLAGS = $(CFLAGS_FOR_TARGET)
 GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
 
-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs \
+	-L $(libgccdir) -L $(libgccdir)/.libs -lgcc_s
 GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
 
 cmdsrcdir = $(srcdir)/../libgo/go/cmd

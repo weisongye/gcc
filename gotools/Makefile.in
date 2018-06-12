@@ -252,13 +252,15 @@ mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinstalldirs
 PWD_COMMAND = $${PWDCMD-pwd}
 STAMP = echo timestamp >
 libgodir = ../$(target_noncanonical)/libgo
+libgccdir = ../$(target_noncanonical)/libgcc
 LIBGODEP = $(libgodir)/libgo.la
 @NATIVE_FALSE@GOCOMPILER = $(GOC)
 
 # Use the compiler we just built.
 @NATIVE_TRUE@GOCOMPILER = $(GOC_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET)
 GOCOMPILE = $(GOCOMPILER) $(GOCFLAGS)
-AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs
+AM_LDFLAGS = -L $(libgodir) -L $(libgodir)/.libs \
+	-L $(libgccdir) -L $(libgccdir)/.libs -lgcc_s
 GOLINK = $(GOCOMPILER) $(GOCFLAGS) $(AM_GOCFLAGS) $(LDFLAGS) $(AM_LDFLAGS) -o $@
 cmdsrcdir = $(srcdir)/../libgo/go/cmd
 go_cmd_go_files = \
