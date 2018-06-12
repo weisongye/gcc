@@ -126,10 +126,6 @@
   "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} "	\
   LINUX_OR_ANDROID_LD (GNU_USER_TARGET_ENDFILE_SPEC, ANDROID_ENDFILE_SPEC)
 
-/* Use the default LIBGCC_SPEC, not the version in linux-elf.h, as we
-   do not use -lfloat.  */
-#undef LIBGCC_SPEC
-
 /* Clear the instruction cache from `beg' to `end'.  This is
    implemented in lib1funcs.S, so ensure an error if this definition
    is used.  */

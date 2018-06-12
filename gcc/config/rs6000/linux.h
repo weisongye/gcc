@@ -60,6 +60,9 @@
 #undef	CPP_OS_DEFAULT_SPEC
 #define CPP_OS_DEFAULT_SPEC "%(cpp_os_linux)"
 
+#undef LIBGCC_SPEC
+#define LIBGCC_SPEC "%{!static:%{!static-libgcc:-lgcc_s}} -lgcc"
+
 #undef  LINK_SHLIB_SPEC
 #define LINK_SHLIB_SPEC "%{shared:-shared} %{!shared: %{static:-static}}"
 
