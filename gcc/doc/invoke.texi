@@ -6569,6 +6569,17 @@ This option is only supported for C and Objective-C@.  It is implied by
 @option{-Wall} and by @option{-Wpedantic}, which can be disabled with
 @option{-Wno-pointer-sign}.
 
+@item -fhonour-copts
+@opindex fhonour-copts
+If @env{GCC_HONOUR_COPTS} is set to 1, abort if this option is not
+given at least once, and warn if it is given more than once.
+If @env{GCC_HONOUR_COPTS} is set to 2, abort if this option is not
+given exactly once.
+If @env{GCC_HONOUR_COPTS} is set to 0 or unset, warn if this option
+is not given exactly once.
+The warning is quelled if @env{GCC_HONOUR_COPTS} is set to @samp{s}.
+This flag and environment variable only affect the C language.
+
 @item -Wstack-protector
 @opindex Wstack-protector
 @opindex Wno-stack-protector

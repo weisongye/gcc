@@ -1510,6 +1510,9 @@ fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
 Enable guessing of branch probabilities.
 
+fhonour-copts
+Common RejectNegative
+
 ; Nonzero means ignore `#ident' directives.  0 means handle them.
 ; Generate position-independent code for executables if possible
 ; On SVR4 targets, it also controls whether or not to emit a
