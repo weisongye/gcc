@@ -1481,6 +1481,9 @@ C++ ObjC++ Optimization Alias(fexceptions) Warn({-fhandle-exceptions has been re
 fhonor-std
 C++ ObjC++ Ignore Warn(switch %qs is no longer supported)
 
+fhonour-copts
+C ObjC C++ ObjC++ RejectNegative
+
 fhosted
 C ObjC
 Assume normal C execution environment.
